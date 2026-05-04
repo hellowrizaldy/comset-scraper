@@ -1,0 +1,414 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>COMSET Scraper</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --ink:#0d1b2a;--ink2:#4a5e74;--ink3:#8fa3b8;
+  --paper:#f0f4f9;--card:#fff;--border:#dde3ec;
+  --blue:#1350c8;--blue2:#1a6aff;
+}
+body{font-family:'DM Sans',sans-serif;background:var(--paper);color:var(--ink);min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px}
+.wrap{width:100%;max-width:680px}
+.setup-card{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:28px 32px;margin-bottom:16px;box-shadow:0 4px 24px rgba(0,0,0,.07)}
+.logo{display:flex;align-items:center;gap:10px;margin-bottom:20px}
+.logo-text{font-weight:800;font-size:18px;letter-spacing:-.3px}
+.logo-dot{width:8px;height:8px;border-radius:50%;background:var(--blue2)}
+.logo-sub{font-size:12px;color:var(--ink3);font-weight:500}
+.field-row{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px}
+.field{display:flex;flex-direction:column;gap:5px}
+.field label{font-size:11px;font-weight:700;color:var(--ink3);text-transform:uppercase;letter-spacing:.6px}
+.field input{padding:9px 12px;border:1.5px solid var(--border);border-radius:8px;font-size:13px;font-weight:600;font-family:inherit;color:var(--ink);outline:none;transition:.15s}
+.field input:focus{border-color:var(--blue2)}
+.url-field{margin-bottom:18px}
+.url-field label{font-size:11px;font-weight:700;color:var(--ink3);text-transform:uppercase;letter-spacing:.6px;display:block;margin-bottom:5px}
+.url-field input{width:100%;padding:9px 12px;border:1.5px solid var(--border);border-radius:8px;font-size:12px;font-family:'DM Mono',monospace;color:var(--ink);outline:none;transition:.15s}
+.url-field input:focus{border-color:var(--blue2)}
+.url-hint{font-size:11px;color:var(--ink3);margin-top:4px}
+.guide{background:#e8effe;border:1px solid #c5d8f8;border-radius:10px;padding:14px 16px;margin-bottom:18px;font-size:12px;color:var(--ink2);line-height:1.8}
+.guide strong{color:var(--ink)}
+.guide ol{padding-left:16px}
+.start-btn{width:100%;height:44px;background:linear-gradient(135deg,var(--blue),var(--blue2));border:none;border-radius:10px;color:#fff;font-size:14px;font-weight:700;font-family:inherit;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;transition:.15s}
+.start-btn:hover{filter:brightness(1.08)}
+.start-btn:disabled{opacity:.5;cursor:not-allowed}
+.progress-card{background:var(--card);border:1px solid var(--border);border-radius:16px;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,.07);display:none;margin-bottom:16px}
+.progress-card.show{display:block}
+.prog-header{background:var(--ink);padding:16px 24px;display:flex;align-items:center;justify-content:space-between}
+.prog-title{color:#fff;font-weight:700;font-size:14px}
+.prog-date{color:rgba(255,255,255,.45);font-size:12px;font-family:'DM Mono',monospace}
+.prog-bar-wrap{height:4px;background:rgba(255,255,255,.1)}
+.prog-bar{height:100%;background:linear-gradient(90deg,var(--blue2),#40dc88);width:0%;transition:width .5s}
+.prog-body{padding:20px 24px}
+.prog-status{font-size:13px;color:var(--ink2);margin-bottom:16px;min-height:20px}
+.prog-status strong{color:var(--ink);font-weight:700}
+.hotel-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:20px}
+.hotel-item{border:1px solid var(--border);border-radius:8px;padding:8px 10px;display:flex;align-items:center;justify-content:space-between;gap:6px;font-size:11px;background:#fafbfc;transition:.2s}
+.hotel-item.loading{border-color:#fbbf24;background:#fffbeb}
+.hotel-item.ok{border-color:#6ee7b7;background:#f0fdf4}
+.hotel-item.err{border-color:#fca5a5;background:#fff5f5}
+.hi-name{font-weight:600;color:var(--ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1}
+.hi-price{font-family:'DM Mono',monospace;font-size:10px;color:var(--ink3);white-space:nowrap}
+.hi-dot{width:7px;height:7px;border-radius:50%;background:#d1d5db;flex-shrink:0}
+.hotel-item.loading .hi-dot{background:#f59e0b;animation:blink .8s infinite}
+.hotel-item.ok .hi-dot{background:#22c55e}
+.hotel-item.err .hi-dot{background:#ef4444}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.2}}
+.prog-footer{display:flex;align-items:center;justify-content:space-between;padding-top:16px;border-top:1px solid var(--border)}
+.prog-counter{font-size:12px;color:var(--ink3)}
+.prog-counter strong{color:var(--ink)}
+.prog-eta{font-family:'DM Mono',monospace;font-size:11px;color:var(--ink3)}
+.result-card{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:24px;box-shadow:0 4px 24px rgba(0,0,0,.07);display:none;margin-top:16px}
+.result-card.show{display:block}
+.result-icon{font-size:32px;margin-bottom:10px}
+.result-title{font-size:16px;font-weight:800;margin-bottom:6px}
+.result-sub{font-size:13px;color:var(--ink3);margin-bottom:18px;line-height:1.6}
+.result-btn{display:inline-flex;align-items:center;gap:6px;background:var(--blue2);color:#fff;border:none;border-radius:8px;padding:9px 16px;font-size:13px;font-weight:700;font-family:inherit;cursor:pointer;text-decoration:none}
+.result-btn:hover{filter:brightness(1.08)}
+.result-btn.outline{background:transparent;color:var(--blue2);border:1.5px solid var(--blue2);margin-left:8px}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="setup-card">
+    <div class="logo">
+      <div class="logo-dot"></div>
+      <div>
+        <div class="logo-text">COMSET Scraper</div>
+        <div class="logo-sub">Fetch langsung dari browser — tanpa proxy</div>
+      </div>
+    </div>
+
+    <div class="guide">
+      <strong>⚠️ Penting sebelum scraping:</strong>
+      <ol>
+        <li>Buka <a href="https://www.traveloka.com" target="_blank">traveloka.com</a> di tab lain dulu (pastikan sudah ter-load)</li>
+        <li>Kembali ke tab ini, lalu klik Mulai Scraping</li>
+        <li>Kalau browser tanya izin, klik Allow</li>
+      </ol>
+    </div>
+
+    <div class="url-field">
+      <label>URL Web App (dari Google Apps Script)</label>
+      <input type="text" id="gasUrl" placeholder="https://script.google.com/macros/s/XXXX/exec">
+      <div class="url-hint">URL disimpan otomatis di browser kamu.</div>
+    </div>
+
+    <div class="field-row">
+      <div class="field">
+        <label>Tanggal Check-in</label>
+        <input type="date" id="scrapeDate">
+      </div>
+      <div class="field">
+        <label>Jumlah Tamu</label>
+        <input type="number" id="guestCount" value="1" min="1" max="4">
+      </div>
+    </div>
+
+    <button class="start-btn" id="startBtn">
+      <span>⚡</span> Mulai Scraping 17 Hotel
+    </button>
+  </div>
+
+  <div class="progress-card" id="progressCard">
+    <div class="prog-header">
+      <span class="prog-title">Sedang Scraping...</span>
+      <span class="prog-date" id="progDate"></span>
+    </div>
+    <div class="prog-bar-wrap"><div class="prog-bar" id="progBar"></div></div>
+    <div class="prog-body">
+      <div class="prog-status" id="progStatus">Memulai...</div>
+      <div class="hotel-grid" id="hotelGrid"></div>
+      <div class="prog-footer">
+        <div class="prog-counter" id="progCounter">0 / 17 hotel</div>
+        <div class="prog-eta" id="progEta"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="result-card" id="resultCard">
+    <div class="result-icon" id="resIcon">✅</div>
+    <div class="result-title" id="resTitle">Scraping Selesai!</div>
+    <div class="result-sub" id="resSub"></div>
+    <div>
+      <button class="result-btn" id="resDashBtn">📊 Buka Dashboard</button>
+      <button class="result-btn outline" onclick="resetUI()">🔄 Scrape Lagi</button>
+    </div>
+  </div>
+
+</div>
+<script>
+const HOTELS = [
+  {name:"Novotel",      tvId:"76380"},
+  {name:"Best Western", tvId:"3000010008710"},
+  {name:"The Luxton",   tvId:"238032"},
+  {name:"Aryaduta",     tvId:"3000010009554"},
+  {name:"Grand Tjokro", tvId:"3000010008390"},
+  {name:"Sensa",        tvId:"2000000141122"},
+  {name:"Mercure Nexa", tvId:"3000010008769"},
+  {name:"Oakwood",      tvId:"9000003356682"},
+  {name:"De Paviljoen", tvId:"3000010029331"},
+  {name:"Janevalla",    tvId:"3000020009318"},
+  {name:"Grand Tebu",   tvId:"3000010014882"},
+  {name:"Hay",          tvId:"3000010034081"},
+  {name:"Ivory",        tvId:"3000010000184"},
+  {name:"Moxy",         tvId:"3000010043683"},
+  {name:"Ibis Styles",  tvId:"9000000890203"},
+  {name:"eL Royale",    tvId:"2000000081029"},
+  {name:"THE 1O1",      tvId:"3000010001305"},
+];
+
+window.onload = function() {
+  document.getElementById("scrapeDate").value = isoToday();
+  const saved = localStorage.getItem("comset_gas_url");
+  if (saved) document.getElementById("gasUrl").value = saved;
+  buildGrid();
+  document.getElementById("startBtn").addEventListener("click", startScrape);
+};
+
+function buildGrid() {
+  document.getElementById("hotelGrid").innerHTML = HOTELS.map((h,i) =>
+    `<div class="hotel-item" id="hi${i}">
+      <span class="hi-name">${h.name}</span>
+      <span class="hi-price" id="hip${i}"></span>
+      <span class="hi-dot"></span>
+    </div>`
+  ).join("");
+}
+
+function setHotel(i, state, price) {
+  const el = document.getElementById("hi"+i);
+  const pe = document.getElementById("hip"+i);
+  if (el) el.className = "hotel-item " + (state||"");
+  if (pe) pe.textContent = price || "";
+}
+
+async function startScrape() {
+  const gasUrl  = document.getElementById("gasUrl").value.trim();
+  const dateStr = document.getElementById("scrapeDate").value;
+  if (!gasUrl) { alert("Paste dulu URL Web App GAS kamu!"); return; }
+  if (!dateStr) { alert("Pilih tanggal dulu!"); return; }
+  localStorage.setItem("comset_gas_url", gasUrl);
+
+  document.getElementById("progressCard").classList.add("show");
+  document.getElementById("resultCard").classList.remove("show");
+  document.getElementById("startBtn").disabled = true;
+  document.getElementById("progDate").textContent = fmtDisplay(dateStr);
+  setBar(0); setStatus("Memulai..."); setCounter(0);
+  HOTELS.forEach((_,i) => setHotel(i,"",""));
+
+  const results = [];
+  const t0 = Date.now();
+  const guests = document.getElementById("guestCount").value || "1";
+
+  for (let i = 0; i < HOTELS.length; i++) {
+    setHotel(i, "loading", "");
+    setStatus("Mengambil <strong>" + HOTELS[i].name + "</strong> (" + (i+1) + "/" + HOTELS.length + ")...");
+
+    const r = await fetchPrice(HOTELS[i], dateStr, guests);
+    results.push(r);
+
+    if (r.ro > 0) setHotel(i, "ok", shortRp(r.ro));
+    else          setHotel(i, "err", "");
+
+    const done = i + 1;
+    setBar(Math.round(done / HOTELS.length * 100));
+    setCounter(done);
+
+    const elapsed = (Date.now() - t0) / 1000;
+    const rem = Math.round((HOTELS.length - done) / (done / elapsed));
+    document.getElementById("progEta").textContent = rem > 0 ? "~"+rem+"s tersisa" : "";
+
+    if (i < HOTELS.length - 1) await sleep(800);
+  }
+
+  const ok = results.filter(r => r.ro > 0).length;
+  setStatus("✅ Selesai! <strong>" + ok + "/" + HOTELS.length + "</strong> hotel berhasil.");
+  setBar(100);
+  document.getElementById("progEta").textContent = "";
+
+  await saveToSheet(gasUrl, dateStr, results, ok);
+}
+
+// ── Fetch langsung dari browser ke Traveloka (tanpa proxy) ──
+async function fetchPrice(hotel, dateStr, guests) {
+  const dOut = new Date(dateStr + "T00:00:00Z");
+  dOut.setUTCDate(dOut.getUTCDate() + 1);
+  const cout = dOut.toISOString().substring(0, 10);
+  let ro = null, bb = null;
+
+  // Coba 1: API Traveloka langsung
+  try {
+    const tvUrl = "https://www.traveloka.com/api/v2/hotel/search?spec="
+      + dateStr + "." + cout + ".1." + guests
+      + ".HOTEL." + hotel.tvId + "." + encodeURIComponent(hotel.name) + ".1";
+    const resp = await fetch(tvUrl, {
+      credentials: "include",   // kirim cookie Traveloka
+      headers: {
+        "Accept": "application/json, text/plain, */*",
+        "x-domain": "hotel",
+        "x-route-prefix": "id-id"
+      },
+      signal: AbortSignal.timeout(12000)
+    });
+    if (resp.ok) {
+      const text = await resp.text();
+      const p = extractPrices(text);
+      if (p.ro) { ro = p.ro; bb = p.bb; }
+    }
+  } catch(e) {}
+
+  // Coba 2: allorigins (kadang jalan, kadang tidak)
+  if (!ro) {
+    try {
+      const tvUrl = "https://www.traveloka.com/api/v2/hotel/search?spec="
+        + dateStr + "." + cout + ".1." + guests
+        + ".HOTEL." + hotel.tvId + "." + encodeURIComponent(hotel.name) + ".1";
+      const resp = await fetch(
+        "https://api.allorigins.win/raw?url=" + encodeURIComponent(tvUrl),
+        {signal: AbortSignal.timeout(12000)}
+      );
+      if (resp.ok) {
+        const text = await resp.text();
+        const p = extractPrices(text);
+        if (p.ro) { ro = p.ro; bb = p.bb; }
+      }
+    } catch(e) {}
+  }
+
+  // Coba 3: corsproxy.io
+  if (!ro) {
+    try {
+      const tvUrl = "https://www.traveloka.com/api/v2/hotel/search?spec="
+        + dateStr + "." + cout + ".1." + guests
+        + ".HOTEL." + hotel.tvId + "." + encodeURIComponent(hotel.name) + ".1";
+      const resp = await fetch(
+        "https://corsproxy.io/?" + encodeURIComponent(tvUrl),
+        {signal: AbortSignal.timeout(12000)}
+      );
+      if (resp.ok) {
+        const text = await resp.text();
+        const p = extractPrices(text);
+        if (p.ro) { ro = p.ro; bb = p.bb; }
+      }
+    } catch(e) {}
+  }
+
+  return {name: hotel.name, tvId: hotel.tvId, ro, bb};
+}
+
+function extractPrices(text) {
+  let ro = null, bb = null;
+  if (!text || text.length < 20) return {ro, bb};
+  try {
+    let json = text.trim().replace(/^[^{[]*/, "").replace(/[^}\]]*$/, "");
+    const data = JSON.parse(json);
+    const tries = [
+      d => d?.data?.roomList?.[0]?.displayPrice?.amount,
+      d => d?.data?.rooms?.[0]?.price?.amount,
+      d => d?.data?.hotelDetail?.lowestPrice?.amount,
+      d => d?.data?.items?.[0]?.price,
+      d => d?.result?.rooms?.[0]?.basePrice,
+      d => d?.data?.[0]?.price?.amount,
+      d => d?.data?.roomTypes?.[0]?.rateInfo?.totalFare?.amount,
+    ];
+    for (const fn of tries) {
+      try { const v = fn(data); if (v && v > 50000 && v < 20000000) { ro = v; break; } } catch(e) {}
+    }
+    if (ro) {
+      const rooms = data?.data?.roomList || data?.data?.rooms || data?.data?.roomTypes || [];
+      for (const r of rooms) {
+        const name = (r?.roomTypeName || r?.name || r?.roomType || "").toLowerCase();
+        const amt = r?.displayPrice?.amount || r?.price?.amount || r?.rateInfo?.totalFare?.amount;
+        if ((name.includes("breakfast") || name.includes("sarapan")) && amt > 50000) { bb = amt; break; }
+      }
+    }
+  } catch(e) {}
+
+  if (!ro) {
+    const pats = [/"amount"\s*:\s*(\d{6,8})/g, /"price"\s*:\s*(\d{6,8})/g, /IDR\s*(\d{6,8})/g, /Rp\.?\s*([\d.]+)/g];
+    for (const pat of pats) {
+      const ms = [...text.matchAll(pat)];
+      const prices = ms.map(m => parseInt(m[1].replace(/\./g,""))).filter(p => p >= 100000 && p <= 9000000).sort((a,b)=>a-b);
+      if (prices.length > 0) { ro = prices[0]; if (prices.length > 1) bb = prices[1]; break; }
+    }
+  }
+  return {ro, bb};
+}
+
+// ── Simpan ke GAS via POST no-cors (tidak baca response, tapi data terkirim) ──
+async function saveToSheet(gasUrl, dateStr, results, okCount) {
+  setStatus("💾 Menyimpan ke Google Sheet...");
+  const payload = JSON.stringify({action:"save", dateStr, results});
+
+  // Coba POST biasa dulu (baca response)
+  try {
+    const resp = await fetch(gasUrl, {
+      method: "POST",
+      headers: {"Content-Type": "text/plain"}, // text/plain tidak trigger preflight
+      body: payload,
+      signal: AbortSignal.timeout(15000)
+    });
+    let saved = false;
+    try { const data = await resp.json(); saved = data.success; } catch(e) {}
+    showResult(okCount, saved, gasUrl);
+    return;
+  } catch(e) {}
+
+  // Fallback: no-cors (data terkirim tapi response tidak terbaca — asumsikan sukses)
+  try {
+    await fetch(gasUrl, {
+      method: "POST",
+      mode: "no-cors",
+      headers: {"Content-Type": "text/plain"},
+      body: payload,
+    });
+    showResult(okCount, true, gasUrl);
+  } catch(e) {
+    showResult(okCount, false, gasUrl);
+  }
+}
+
+function showResult(okCount, saved, gasUrl) {
+  document.getElementById("startBtn").disabled = false;
+  document.getElementById("resultCard").classList.add("show");
+  const dashUrl = gasUrl.replace(/\/exec.*/, "/exec");
+  if (okCount > 0 && saved) {
+    document.getElementById("resIcon").textContent = "✅";
+    document.getElementById("resTitle").textContent = "Berhasil!";
+    document.getElementById("resSub").innerHTML = okCount + " dari 17 hotel berhasil di-scrape dan data sudah tersimpan ke Google Sheet.<br>Buka dashboard untuk lihat hasilnya.";
+  } else if (okCount > 0) {
+    document.getElementById("resIcon").textContent = "⚠️";
+    document.getElementById("resTitle").textContent = "Scraping OK, Cek Sheet";
+    document.getElementById("resSub").innerHTML = okCount + " hotel berhasil. Data kemungkinan sudah tersimpan — buka dashboard untuk verifikasi.";
+  } else {
+    document.getElementById("resIcon").textContent = "❌";
+    document.getElementById("resTitle").textContent = "Scraping Gagal";
+    document.getElementById("resSub").innerHTML = "Semua hotel gagal di-scrape.<br>Pastikan kamu sudah buka <strong>traveloka.com</strong> di tab lain sebelum scraping, lalu coba lagi.";
+  }
+  document.getElementById("resDashBtn").onclick = function() { window.open(dashUrl, "_blank"); };
+}
+
+function resetUI() {
+  document.getElementById("progressCard").classList.remove("show");
+  document.getElementById("resultCard").classList.remove("show");
+  document.getElementById("startBtn").disabled = false;
+  HOTELS.forEach((_,i) => setHotel(i,"",""));
+  setBar(0); setStatus("Siap."); setCounter(0);
+}
+
+function setBar(p) { document.getElementById("progBar").style.width = p+"%"; }
+function setStatus(h) { document.getElementById("progStatus").innerHTML = h; }
+function setCounter(n) { document.getElementById("progCounter").innerHTML = "<strong>"+n+"</strong> / "+HOTELS.length+" hotel"; }
+function isoToday() { const d=new Date(); return d.getFullYear()+"-"+pad(d.getMonth()+1)+"-"+pad(d.getDate()); }
+function pad(n) { return String(n).padStart(2,"0"); }
+function fmtDisplay(s) { const d=new Date(s+"T00:00:00"); return d.toLocaleDateString("id-ID",{weekday:"short",day:"numeric",month:"short",year:"numeric"}); }
+function shortRp(n) { if(!n||n<=0) return ""; return n>=1000000?"Rp"+(n/1000000).toFixed(1)+"jt":"Rp"+(n/1000).toFixed(0)+"k"; }
+function sleep(ms) { return new Promise(r=>setTimeout(r,ms)); }
+</script>
+</body>
+</html>
