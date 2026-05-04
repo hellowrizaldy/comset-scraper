@@ -7,11 +7,7 @@
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-:root{
-  --ink:#0d1b2a;--ink2:#4a5e74;--ink3:#8fa3b8;
-  --paper:#f0f4f9;--card:#fff;--border:#dde3ec;
-  --blue:#1350c8;--blue2:#1a6aff;
-}
+:root{--ink:#0d1b2a;--ink2:#4a5e74;--ink3:#8fa3b8;--paper:#f0f4f9;--card:#fff;--border:#dde3ec;--blue:#1350c8;--blue2:#1a6aff;}
 body{font-family:'DM Sans',sans-serif;background:var(--paper);color:var(--ink);min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px}
 .wrap{width:100%;max-width:680px}
 .setup-card{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:28px 32px;margin-bottom:16px;box-shadow:0 4px 24px rgba(0,0,0,.07)}
@@ -31,7 +27,6 @@ body{font-family:'DM Sans',sans-serif;background:var(--paper);color:var(--ink);m
 .url-hint{font-size:11px;color:var(--ink3);margin-top:4px}
 .guide{background:#e8effe;border:1px solid #c5d8f8;border-radius:10px;padding:14px 16px;margin-bottom:18px;font-size:12px;color:var(--ink2);line-height:1.8}
 .guide strong{color:var(--ink)}
-.guide ol{padding-left:16px}
 .start-btn{width:100%;height:44px;background:linear-gradient(135deg,var(--blue),var(--blue2));border:none;border-radius:10px;color:#fff;font-size:14px;font-weight:700;font-family:inherit;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;transition:.15s}
 .start-btn:hover{filter:brightness(1.08)}
 .start-btn:disabled{opacity:.5;cursor:not-allowed}
@@ -79,17 +74,13 @@ body{font-family:'DM Sans',sans-serif;background:var(--paper);color:var(--ink);m
       <div class="logo-dot"></div>
       <div>
         <div class="logo-text">COMSET Scraper</div>
-        <div class="logo-sub">Fetch langsung dari browser — tanpa proxy</div>
+        <div class="logo-sub">via ScraperAPI — rotating residential proxy</div>
       </div>
     </div>
 
     <div class="guide">
-      <strong>⚠️ Penting sebelum scraping:</strong>
-      <ol>
-        <li>Buka <a href="https://www.traveloka.com" target="_blank">traveloka.com</a> di tab lain dulu (pastikan sudah ter-load)</li>
-        <li>Kembali ke tab ini, lalu klik Mulai Scraping</li>
-        <li>Kalau browser tanya izin, klik Allow</li>
-      </ol>
+      <strong>✅ Mode: ScraperAPI</strong> — Traveloka tidak bisa memblokir karena IP selalu berganti.<br>
+      Jalankan sekali sehari. 5000 request gratis/bulan (17 hotel × 2 = 34 request/hari).
     </div>
 
     <div class="url-field">
@@ -142,6 +133,8 @@ body{font-family:'DM Sans',sans-serif;background:var(--paper);color:var(--ink);m
 
 </div>
 <script>
+const SCRAPER_API_KEY = "34f265a58b9748aae8b179811ae0f2c8";
+
 const HOTELS = [
   {name:"Novotel",      tvId:"76380"},
   {name:"Best Western", tvId:"3000010008710"},
@@ -234,27 +227,22 @@ async function startScrape() {
   await saveToSheet(gasUrl, dateStr, results, ok);
 }
 
-// ── Fetch langsung dari browser ke Traveloka (tanpa proxy) ──
 async function fetchPrice(hotel, dateStr, guests) {
   const dOut = new Date(dateStr + "T00:00:00Z");
   dOut.setUTCDate(dOut.getUTCDate() + 1);
   const cout = dOut.toISOString().substring(0, 10);
   let ro = null, bb = null;
 
-  // Coba 1: API Traveloka langsung
+  const tvUrl = "https://www.traveloka.com/api/v2/hotel/search?spec="
+    + dateStr + "." + cout + ".1." + guests
+    + ".HOTEL." + hotel.tvId + "." + encodeURIComponent(hotel.name) + ".1";
+
+  // Coba via ScraperAPI
   try {
-    const tvUrl = "https://www.traveloka.com/api/v2/hotel/search?spec="
-      + dateStr + "." + cout + ".1." + guests
-      + ".HOTEL." + hotel.tvId + "." + encodeURIComponent(hotel.name) + ".1";
-    const resp = await fetch(tvUrl, {
-      credentials: "include",   // kirim cookie Traveloka
-      headers: {
-        "Accept": "application/json, text/plain, */*",
-        "x-domain": "hotel",
-        "x-route-prefix": "id-id"
-      },
-      signal: AbortSignal.timeout(12000)
-    });
+    const scraperUrl = "https://api.scraperapi.com/?api_key=" + SCRAPER_API_KEY
+      + "&url=" + encodeURIComponent(tvUrl)
+      + "&keep_headers=true";
+    const resp = await fetch(scraperUrl, {signal: AbortSignal.timeout(30000)});
     if (resp.ok) {
       const text = await resp.text();
       const p = extractPrices(text);
@@ -262,34 +250,18 @@ async function fetchPrice(hotel, dateStr, guests) {
     }
   } catch(e) {}
 
-  // Coba 2: allorigins (kadang jalan, kadang tidak)
+  // Fallback: ScraperAPI web page
   if (!ro) {
     try {
-      const tvUrl = "https://www.traveloka.com/api/v2/hotel/search?spec="
-        + dateStr + "." + cout + ".1." + guests
-        + ".HOTEL." + hotel.tvId + "." + encodeURIComponent(hotel.name) + ".1";
-      const resp = await fetch(
-        "https://api.allorigins.win/raw?url=" + encodeURIComponent(tvUrl),
-        {signal: AbortSignal.timeout(12000)}
-      );
-      if (resp.ok) {
-        const text = await resp.text();
-        const p = extractPrices(text);
-        if (p.ro) { ro = p.ro; bb = p.bb; }
-      }
-    } catch(e) {}
-  }
-
-  // Coba 3: corsproxy.io
-  if (!ro) {
-    try {
-      const tvUrl = "https://www.traveloka.com/api/v2/hotel/search?spec="
-        + dateStr + "." + cout + ".1." + guests
-        + ".HOTEL." + hotel.tvId + "." + encodeURIComponent(hotel.name) + ".1";
-      const resp = await fetch(
-        "https://corsproxy.io/?" + encodeURIComponent(tvUrl),
-        {signal: AbortSignal.timeout(12000)}
-      );
+      const [y,m,d] = dateStr.split("-");
+      const webUrl = "https://www.traveloka.com/id-id/hotel/indonesia/"
+        + hotel.name.toLowerCase().replace(/\s+/g,"-") + "-" + hotel.tvId
+        + "?checkin=" + y+m+d + "&checkout=" + cout.replace(/-/g,"")
+        + "&room=1&adult=" + guests;
+      const scraperUrl = "https://api.scraperapi.com/?api_key=" + SCRAPER_API_KEY
+        + "&url=" + encodeURIComponent(webUrl)
+        + "&render=true";
+      const resp = await fetch(scraperUrl, {signal: AbortSignal.timeout(40000)});
       if (resp.ok) {
         const text = await resp.text();
         const p = extractPrices(text);
@@ -340,16 +312,13 @@ function extractPrices(text) {
   return {ro, bb};
 }
 
-// ── Simpan ke GAS via POST no-cors (tidak baca response, tapi data terkirim) ──
 async function saveToSheet(gasUrl, dateStr, results, okCount) {
   setStatus("💾 Menyimpan ke Google Sheet...");
   const payload = JSON.stringify({action:"save", dateStr, results});
-
-  // Coba POST biasa dulu (baca response)
   try {
     const resp = await fetch(gasUrl, {
       method: "POST",
-      headers: {"Content-Type": "text/plain"}, // text/plain tidak trigger preflight
+      headers: {"Content-Type": "text/plain"},
       body: payload,
       signal: AbortSignal.timeout(15000)
     });
@@ -358,15 +327,8 @@ async function saveToSheet(gasUrl, dateStr, results, okCount) {
     showResult(okCount, saved, gasUrl);
     return;
   } catch(e) {}
-
-  // Fallback: no-cors (data terkirim tapi response tidak terbaca — asumsikan sukses)
   try {
-    await fetch(gasUrl, {
-      method: "POST",
-      mode: "no-cors",
-      headers: {"Content-Type": "text/plain"},
-      body: payload,
-    });
+    await fetch(gasUrl, {method:"POST", mode:"no-cors", headers:{"Content-Type":"text/plain"}, body: payload});
     showResult(okCount, true, gasUrl);
   } catch(e) {
     showResult(okCount, false, gasUrl);
@@ -384,11 +346,11 @@ function showResult(okCount, saved, gasUrl) {
   } else if (okCount > 0) {
     document.getElementById("resIcon").textContent = "⚠️";
     document.getElementById("resTitle").textContent = "Scraping OK, Cek Sheet";
-    document.getElementById("resSub").innerHTML = okCount + " hotel berhasil. Data kemungkinan sudah tersimpan — buka dashboard untuk verifikasi.";
+    document.getElementById("resSub").innerHTML = okCount + " hotel berhasil. Buka dashboard untuk verifikasi.";
   } else {
     document.getElementById("resIcon").textContent = "❌";
     document.getElementById("resTitle").textContent = "Scraping Gagal";
-    document.getElementById("resSub").innerHTML = "Semua hotel gagal di-scrape.<br>Pastikan kamu sudah buka <strong>traveloka.com</strong> di tab lain sebelum scraping, lalu coba lagi.";
+    document.getElementById("resSub").innerHTML = "Semua hotel gagal. Cek kuota ScraperAPI di dashboard scraperapi.com, lalu coba lagi.";
   }
   document.getElementById("resDashBtn").onclick = function() { window.open(dashUrl, "_blank"); };
 }
