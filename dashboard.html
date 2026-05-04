@@ -1,0 +1,408 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>COMSET — Hotel Bandung</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --ink:#0d1b2a;--ink2:#4a5e74;--ink3:#8fa3b8;
+  --paper:#f5f7fa;--card:#fff;--card2:#eef1f6;
+  --blue:#1350c8;--blue2:#1a6aff;--bluebg:#e8effe;
+  --green:#0a7a4a;--red:#c0202a;--gold:#a06010;--goldbg:#fdf3e0;
+  --border:#dde3ec;--r:12px;
+  --sh:0 1px 3px rgba(0,0,0,.08),0 4px 16px rgba(0,0,0,.06);
+}
+body{font-family:'DM Sans',sans-serif;background:var(--paper);color:var(--ink);min-height:100vh;font-size:14px}
+.hdr{background:var(--ink);color:#fff;height:52px;display:flex;align-items:center;padding:0 24px;gap:16px;position:sticky;top:0;z-index:200}
+.hdr-logo{font-weight:800;font-size:15px;letter-spacing:-.3px}
+.hdr-dot{width:6px;height:6px;border-radius:50%;background:#3af;flex-shrink:0}
+.hdr-sep{width:1px;height:20px;background:rgba(255,255,255,.12)}
+.hdr-sub{font-size:11px;color:rgba(255,255,255,.45);font-weight:500}
+.hdr-right{margin-left:auto;display:flex;align-items:center;gap:8px}
+.date-nav{display:flex;align-items:center;gap:4px}
+.date-nav button{background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.15);color:#fff;width:28px;height:28px;border-radius:6px;cursor:pointer;font-size:14px}
+#datePicker{background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.18);color:#fff;padding:4px 9px;border-radius:6px;font-size:12px;font-weight:600;font-family:inherit;cursor:pointer;outline:none}
+#datePicker::-webkit-calendar-picker-indicator{filter:invert(1);opacity:.6}
+.refresh-btn{display:flex;align-items:center;gap:6px;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.15);color:#fff;padding:0 12px;height:30px;border-radius:6px;font-size:12px;font-weight:600;font-family:inherit;cursor:pointer}
+.refresh-btn:hover{background:rgba(255,255,255,.2)}
+.main{padding:20px 24px;max-width:1400px;margin:0 auto}
+.stat-row{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:18px}
+.stat{background:var(--card);border:1px solid var(--border);border-radius:var(--r);padding:14px 16px;box-shadow:var(--sh)}
+.stat-lbl{font-size:10px;font-weight:700;color:var(--ink3);text-transform:uppercase;letter-spacing:.7px;margin-bottom:4px}
+.stat-val{font-size:22px;font-weight:800;line-height:1}
+.stat-val.g{color:var(--green)}.stat-val.r{color:var(--red)}.stat-val.go{color:var(--gold)}
+.stat-note{font-size:11px;color:var(--ink3);margin-top:3px;font-weight:500}
+.grid{display:grid;grid-template-columns:1fr 320px;gap:16px;align-items:start}
+.left-col{display:flex;flex-direction:column;gap:16px}
+.card{background:var(--card);border:1px solid var(--border);border-radius:var(--r);box-shadow:var(--sh);overflow:hidden}
+.card-hdr{padding:12px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;gap:10px}
+.card-title{font-size:12px;font-weight:700;color:var(--ink)}
+.tog{display:flex;background:var(--card2);border-radius:6px;padding:3px;gap:2px}
+.tog-btn{padding:3px 10px;border:none;background:transparent;border-radius:4px;font-size:11px;font-weight:700;font-family:inherit;color:var(--ink3);cursor:pointer}
+.tog-btn.on{background:var(--card);color:var(--blue);box-shadow:0 1px 4px rgba(0,0,0,.1)}
+.tbl{width:100%;border-collapse:collapse;font-size:12.5px}
+.tbl th{background:var(--card2);font-size:10px;font-weight:700;color:var(--ink3);text-transform:uppercase;letter-spacing:.5px;padding:8px 14px;text-align:left}
+.tbl th.r{text-align:right}
+.tbl td{padding:9px 14px;border-bottom:1px solid var(--border)}
+.tbl tr:last-child td{border-bottom:none}
+.tbl tr:hover td{background:#f8fafd}
+.rank{display:inline-flex;align-items:center;justify-content:center;width:20px;height:20px;border-radius:5px;font-size:10px;font-weight:700;background:var(--card2);color:var(--ink3)}
+.rank.g1{background:var(--goldbg);color:var(--gold)}
+.rank.g2{background:#f0f0f0;color:#707070}
+.rank.g3{background:#fdf0e8;color:#a06030}
+.price{text-align:right;font-weight:700;font-family:'DM Mono',monospace;font-size:12px}
+.price.lo{color:var(--green)}.price.hi{color:var(--red)}.price.na{color:var(--ink3);font-weight:500}
+.diff{text-align:right;font-size:11px;font-weight:600;font-family:'DM Mono',monospace}
+.diff.zero{color:var(--green)}.diff.pos{color:var(--red)}.diff.na{color:var(--ink3)}
+.h-name{font-weight:600;color:var(--ink)}
+.chart-body{padding:12px 12px 16px}
+.chart-wrap{position:relative;width:100%;height:300px}
+.date-list{max-height:400px;overflow-y:auto}
+.d-item{display:flex;align-items:center;justify-content:space-between;padding:9px 14px;border-bottom:1px solid var(--border);cursor:pointer;font-size:12px}
+.d-item:last-child{border-bottom:none}
+.d-item:hover{background:#f6f9ff}
+.d-item.on{background:var(--bluebg);border-left:3px solid var(--blue)}
+.d-item-lbl{font-weight:600;color:var(--ink)}
+.d-item-sub{font-size:10px;color:var(--ink3)}
+.empty{padding:40px 0;text-align:center;color:var(--ink3);font-size:12px;line-height:1.8}
+.spin{width:28px;height:28px;border:2.5px solid var(--border);border-top-color:var(--blue);border-radius:50%;animation:spin .7s linear infinite;margin:0 auto 12px}
+@keyframes spin{to{transform:rotate(360deg)}}
+.badge{display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:20px;font-size:10px;font-weight:700}
+.badge.live{background:#e6f7ef;color:var(--green)}
+.badge.err{background:#fdecea;color:var(--red)}
+@media(max-width:860px){.stat-row{grid-template-columns:1fr 1fr}.grid{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+
+<header class="hdr">
+  <div class="hdr-logo">COMSET</div>
+  <div class="hdr-dot"></div>
+  <div class="hdr-sub">Competitor Rate · Bandung</div>
+  <div class="hdr-sep"></div>
+  <span class="badge live" id="statusBadge">● Live</span>
+  <div class="hdr-right">
+    <div class="date-nav">
+      <button id="btnPrev">&#8592;</button>
+      <input type="date" id="datePicker">
+      <button id="btnNext">&#8594;</button>
+    </div>
+    <button class="refresh-btn" id="refreshBtn">🔄 Refresh</button>
+  </div>
+</header>
+
+<main class="main">
+  <div class="stat-row">
+    <div class="stat"><div class="stat-lbl">Hotel Dipantau</div><div class="stat-val" id="sTotal">—</div><div class="stat-note">dengan data</div></div>
+    <div class="stat"><div class="stat-lbl">RO Termurah</div><div class="stat-val g" id="sMin">—</div><div class="stat-note" id="sMinN">—</div></div>
+    <div class="stat"><div class="stat-lbl">RO Rata-rata</div><div class="stat-val go" id="sAvg">—</div><div class="stat-note">semua hotel</div></div>
+    <div class="stat"><div class="stat-lbl">RO Termahal</div><div class="stat-val r" id="sMax">—</div><div class="stat-note" id="sMaxN">—</div></div>
+  </div>
+
+  <div class="grid">
+    <div class="left-col">
+      <div class="card">
+        <div class="card-hdr">
+          <span class="card-title">Ranking Harga Hotel</span>
+          <div class="tog">
+            <button class="tog-btn on" id="btnRO">Room Only</button>
+            <button class="tog-btn" id="btnBB">Breakfast</button>
+          </div>
+        </div>
+        <div id="tableWrap"><div class="empty"><div class="spin"></div>Memuat data...</div></div>
+      </div>
+      <div class="card">
+        <div class="card-hdr"><span class="card-title" id="chartTitle">Chart — Room Only</span></div>
+        <div class="chart-body"><div class="chart-wrap"><canvas id="chartEl"></canvas></div></div>
+      </div>
+    </div>
+    <div>
+      <div class="card">
+        <div class="card-hdr">
+          <span class="card-title">Riwayat</span>
+          <span style="font-size:10px;color:var(--ink3)" id="dCount"></span>
+        </div>
+        <div class="date-list" id="dateList"><div class="empty"><div class="spin"></div></div></div>
+      </div>
+    </div>
+  </div>
+</main>
+
+<script>
+// ── CONFIG ──
+var SHEET_ID = "1_j0pHpfwgjdbKfgexwmC7rN0y8QDUBwLf4XdeWjHG6Q";
+var SHEET_NAME = "COMSET";
+
+var allData = {};
+var currentDate = "";
+var currentView = "RO";
+var chart = null;
+
+// ── FETCH DATA DARI GOOGLE SHEETS (public) ──
+async function fetchSheetData() {
+  var url = "https://docs.google.com/spreadsheets/d/" + SHEET_ID
+    + "/gviz/tq?tqx=out:json&sheet=" + encodeURIComponent(SHEET_NAME);
+
+  var resp = await fetch(url);
+  var text = await resp.text();
+  // Strip JSONP wrapper
+  text = text.replace(/^[^(]+\(/, "").replace(/\);?\s*$/, "");
+  return JSON.parse(text);
+}
+
+function parseGvizData(gviz) {
+  allData = {};
+  var cols = gviz.table.cols;
+  var rows = gviz.table.rows;
+  if (!rows || !rows.length) return;
+
+  // Cari header row (row pertama yang punya string di col 0)
+  // Di sheet kita: row 0 = nama hotel (merged), row 1 = RO/BB, row 2+ = data
+  // gviz sudah flatten merged cells
+
+  // Ambil nama hotel dari cols (kolom 1,3,5,... = nama hotel; 2,4,6,... = kosong karena merge)
+  var hotels = [];
+  for (var c = 1; c < cols.length; c += 2) {
+    var lbl = cols[c].label || "";
+    if (lbl) hotels.push({name: lbl, cRO: c, cBB: c+1});
+  }
+
+  // Parse baris data (skip baris header RO/BB = baris pertama yang value-nya "RO")
+  for (var r = 0; r < rows.length; r++) {
+    var row = rows[r];
+    if (!row || !row.c) continue;
+    var cell0 = row.c[0];
+    if (!cell0 || !cell0.v) continue;
+
+    // Skip baris header
+    var v0 = String(cell0.v);
+    if (v0 === "Tanggal" || v0 === "RO" || v0 === "") continue;
+
+    // Parse tanggal
+    var dk = parseDate(cell0.v, cell0.f);
+    if (!dk) continue;
+
+    allData[dk] = hotels.map(function(h) {
+      var ro = null, bb = null;
+      if (row.c[h.cRO]) ro = parsePrice(row.c[h.cRO].v);
+      if (row.c[h.cBB]) bb = parsePrice(row.c[h.cBB].v);
+      return {hotel: h.name, ro: ro, bb: bb};
+    });
+  }
+}
+
+function parseDate(v, formatted) {
+  if (!v) return null;
+  // gviz dates come as "Date(2026,4,4)" format
+  if (typeof v === "string" && v.startsWith("Date(")) {
+    var parts = v.replace("Date(","").replace(")","").split(",");
+    var y = parseInt(parts[0]);
+    var m = parseInt(parts[1]) + 1; // gviz months are 0-indexed
+    var d = parseInt(parts[2]);
+    return y + "-" + pad(m) + "-" + pad(d);
+  }
+  // Formatted string like "2026-05-04"
+  if (formatted && /^\d{4}-\d{2}-\d{2}$/.test(formatted)) return formatted;
+  if (typeof v === "string" && /^\d{4}-\d{2}-\d{2}$/.test(v.substring(0,10))) return v.substring(0,10);
+  return null;
+}
+
+function parsePrice(v) {
+  if (v === null || v === undefined || v === "" || v === "—" || v === "-") return null;
+  if (typeof v === "number" && v > 0) return v;
+  var n = parseInt(String(v).replace(/[^0-9]/g,""));
+  return isNaN(n) || n <= 0 ? null : n;
+}
+
+// ── LOAD ALL DATA ──
+async function loadAll(selectDate) {
+  document.getElementById("tableWrap").innerHTML = '<div class="empty"><div class="spin"></div>Memuat data...</div>';
+  document.getElementById("dateList").innerHTML = '<div class="empty"><div class="spin"></div></div>';
+  document.getElementById("statusBadge").textContent = "● Memuat...";
+  document.getElementById("statusBadge").className = "badge";
+
+  try {
+    var gviz = await fetchSheetData();
+    parseGvizData(gviz);
+
+    var dates = Object.keys(allData).sort().reverse();
+    renderDateList(dates);
+
+    var target = allData[selectDate] ? selectDate : (dates[0] || selectDate);
+    currentDate = target;
+    document.getElementById("datePicker").value = target;
+    loadDate(target);
+
+    document.getElementById("statusBadge").textContent = "● Live";
+    document.getElementById("statusBadge").className = "badge live";
+  } catch(e) {
+    document.getElementById("tableWrap").innerHTML = '<div class="empty">❌ Gagal load data.<br>Pastikan sheet sudah Public.</div>';
+    document.getElementById("statusBadge").textContent = "● Error";
+    document.getElementById("statusBadge").className = "badge err";
+  }
+}
+
+// ── RENDER ──
+function loadDate(dateStr) {
+  currentDate = dateStr;
+  document.getElementById("datePicker").value = dateStr;
+  highlightDate(dateStr);
+  var rows = allData[dateStr];
+  if (!rows || !rows.length) {
+    document.getElementById("tableWrap").innerHTML = '<div class="empty">Belum ada data untuk ' + fmtDisplay(dateStr) + '.</div>';
+    clearStats();
+    if (chart) { chart.destroy(); chart = null; }
+    return;
+  }
+  renderTable(rows);
+  renderChart(rows);
+  renderStats(rows);
+}
+
+function renderTable(rows) {
+  var key = currentView === "RO" ? "ro" : "bb";
+  var sorted = rows.filter(function(r) { return r[key] != null; }).sort(function(a,b) { return a[key]-b[key]; });
+  var none = rows.filter(function(r) { return r[key] == null; });
+  var minP = sorted.length ? sorted[0][key] : null;
+
+  var h = '<table class="tbl"><thead><tr><th style="width:32px">#</th><th>Hotel</th><th class="r">Harga (' + currentView + ')</th><th class="r">vs Termurah</th></tr></thead><tbody>';
+
+  sorted.forEach(function(r, i) {
+    var rk = i+1;
+    var rc = rk===1?"g1":rk===2?"g2":rk===3?"g3":"";
+    var pc = rk===1?"lo":rk===sorted.length?"hi":"";
+    var diff = r[key] - minP;
+    var ds = diff===0
+      ? '<span class="diff zero">Termurah ✓</span>'
+      : '<span class="diff pos">+' + shortRp(diff) + '</span>';
+    h += '<tr><td><span class="rank ' + rc + '">' + rk + '</span></td><td><span class="h-name">' + r.hotel + '</span></td><td class="price ' + pc + '">' + fmtRp(r[key]) + '</td><td>' + ds + '</td></tr>';
+  });
+
+  none.forEach(function(r) {
+    h += '<tr><td><span class="rank">—</span></td><td><span class="h-name">' + r.hotel + '</span></td><td class="price na">—</td><td class="diff na">—</td></tr>';
+  });
+
+  h += '</tbody></table>';
+  document.getElementById("tableWrap").innerHTML = h;
+}
+
+function renderChart(rows) {
+  if (chart) { chart.destroy(); chart = null; }
+  chart = new Chart(document.getElementById("chartEl"), {
+    type: "bar",
+    data: {
+      labels: rows.map(function(r) { return r.hotel; }),
+      datasets: [
+        {label:"RO", data: rows.map(function(r) { return r.ro||0; }), backgroundColor:"rgba(19,80,200,.75)", borderRadius:4},
+        {label:"BB", data: rows.map(function(r) { return r.bb||0; }), backgroundColor:"rgba(160,96,16,.65)", borderRadius:4}
+      ]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: {display: true, position: "top"},
+        tooltip: {callbacks: {label: function(c) { return c.dataset.label + ": " + fmtRp(c.raw); }}}
+      },
+      scales: {
+        x: {ticks: {font:{size:9}, maxRotation:35, autoSkip:false}, grid:{display:false}},
+        y: {ticks: {callback: function(v) { return "Rp"+(v/1000).toFixed(0)+"k"; }, font:{size:10}}, grid:{color:"rgba(0,0,0,.04)"}}
+      }
+    }
+  });
+}
+
+function renderStats(rows) {
+  var w = rows.filter(function(r) { return r.ro != null; }).sort(function(a,b) { return a.ro-b.ro; });
+  if (!w.length) { clearStats(); return; }
+  var min = w[0], max = w[w.length-1];
+  var avg = Math.round(w.reduce(function(s,r) { return s+r.ro; }, 0) / w.length);
+  document.getElementById("sTotal").textContent = w.length;
+  document.getElementById("sMin").textContent = fmtRp(min.ro);
+  document.getElementById("sMinN").textContent = min.hotel;
+  document.getElementById("sAvg").textContent = fmtRp(avg);
+  document.getElementById("sMax").textContent = fmtRp(max.ro);
+  document.getElementById("sMaxN").textContent = max.hotel;
+}
+
+function clearStats() {
+  ["sTotal","sMin","sMinN","sAvg","sMax","sMaxN"].forEach(function(id) {
+    document.getElementById(id).textContent = "—";
+  });
+}
+
+function renderDateList(dates) {
+  document.getElementById("dCount").textContent = dates.length + " hari";
+  if (!dates.length) {
+    document.getElementById("dateList").innerHTML = '<div class="empty">Belum ada data</div>';
+    return;
+  }
+  var html = dates.map(function(d) {
+    var cnt = (allData[d]||[]).filter(function(r) { return r.ro != null; }).length;
+    return '<div class="d-item" id="di-' + d + '" onclick="loadDate(\'' + d + '\')">' +
+      '<span class="d-item-lbl">' + fmtDisplay(d) + '</span>' +
+      '<span class="d-item-sub">' + cnt + ' hotel</span>' +
+    '</div>';
+  }).join("");
+  document.getElementById("dateList").innerHTML = html;
+}
+
+function highlightDate(d) {
+  var items = document.querySelectorAll(".d-item");
+  for (var i = 0; i < items.length; i++) items[i].classList.remove("on");
+  var el = document.getElementById("di-"+d);
+  if (el) { el.classList.add("on"); el.scrollIntoView({block:"nearest"}); }
+}
+
+function setView(mode) {
+  currentView = mode;
+  document.getElementById("btnRO").classList.toggle("on", mode==="RO");
+  document.getElementById("btnBB").classList.toggle("on", mode==="BB");
+  document.getElementById("chartTitle").textContent = "Chart — " + (mode==="RO"?"Room Only":"Breakfast");
+  if (currentDate && allData[currentDate]) renderTable(allData[currentDate]);
+}
+
+function shiftDate(delta) {
+  var d = new Date((currentDate||isoToday())+"T00:00:00");
+  d.setDate(d.getDate()+delta);
+  loadDate(isoDate(d));
+}
+
+// ── UTILS ──
+function isoToday() { return isoDate(new Date()); }
+function isoDate(d) { return d.getFullYear()+"-"+pad(d.getMonth()+1)+"-"+pad(d.getDate()); }
+function pad(n) { return String(n).padStart(2,"0"); }
+function fmtDisplay(s) {
+  var d = new Date(s+"T00:00:00");
+  return d.toLocaleDateString("id-ID",{weekday:"short",day:"numeric",month:"short",year:"numeric"});
+}
+function fmtRp(n) {
+  var num = typeof n==="number"?n:parseFloat(String(n||"").replace(/[^0-9.]/g,""));
+  if (!num||isNaN(num)||num<=0) return "—";
+  return "Rp "+Math.round(num).toLocaleString("id-ID");
+}
+function shortRp(n) {
+  if (!n||n<=0) return "—";
+  return n>=1000000?"Rp"+(n/1000000).toFixed(1)+"jt":"Rp"+(n/1000).toFixed(0)+"k";
+}
+
+// ── INIT ──
+window.addEventListener("DOMContentLoaded", function() {
+  var today = isoToday();
+  document.getElementById("datePicker").value = today;
+
+  document.getElementById("btnPrev").addEventListener("click", function() { shiftDate(-1); });
+  document.getElementById("btnNext").addEventListener("click", function() { shiftDate(1); });
+  document.getElementById("datePicker").addEventListener("change", function() { loadDate(this.value); });
+  document.getElementById("btnRO").addEventListener("click", function() { setView("RO"); });
+  document.getElementById("btnBB").addEventListener("click", function() { setView("BB"); });
+  document.getElementById("refreshBtn").addEventListener("click", function() { loadAll(currentDate||today); });
+
+  loadAll(today);
+});
+</script>
+</body>
+</html>
